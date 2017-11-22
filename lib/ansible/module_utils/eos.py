@@ -77,8 +77,8 @@ eos_top_spec = {
 eos_argument_spec.update(eos_top_spec)
 
 
-def get_argspec():
-    return eos_argument_spec
+def get_provider_argspec():
+    return eos_provider_spec
 
 
 def check_args(module, warnings):
@@ -125,12 +125,6 @@ class Cli:
             command = self._module.jsonify(command)
         return exec_command(self._module, command)
 
-    def check_authorization(self):
-        for cmd in ['show clock', 'prompt()']:
-            rc, out, err = self.exec_command(cmd)
-            out = to_text(out, errors='surrogate_then_replace')
-        return out.endswith('#')
-
     def get_config(self, flags=None):
         """Retrieves the current config from the device or cache
         """
@@ -176,7 +170,7 @@ class Cli:
         rc = 0
         for command in to_list(commands):
             if command == 'end':
-                pass
+                continue
 
             if command.startswith('banner') or multiline:
                 multiline = True
@@ -193,9 +187,6 @@ class Cli:
     def configure(self, commands):
         """Sends configuration commands to the remote device
         """
-        if not self.check_authorization():
-            self._module.fail_json(msg='configuration operations require privilege escalation')
-
         conn = get_connection(self)
 
         rc, out, err = self.exec_command('configure')
@@ -212,9 +203,6 @@ class Cli:
     def load_config(self, commands, commit=False, replace=False):
         """Loads the config commands onto the remote device
         """
-        if not self.check_authorization():
-            self._module.fail_json(msg='configuration operations require privilege escalation')
-
         use_session = os.getenv('ANSIBLE_EOS_USE_SESSIONS', True)
         try:
             use_session = int(use_session)

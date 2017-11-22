@@ -28,6 +28,7 @@
 import re
 import ast
 import operator
+import socket
 
 from itertools import chain
 
@@ -221,8 +222,10 @@ def dict_diff(base, comparable):
 
     :returns: new dict object with differences
     """
-    assert isinstance(base, dict), "`base` must be of type <dict>"
-    assert isinstance(comparable, dict), "`comparable` must be of type <dict>"
+    if not isinstance(base, dict):
+        raise AssertionError("`base` must be of type <dict>")
+    if not isinstance(comparable, dict):
+        raise AssertionError("`comparable` must be of type <dict>")
 
     updates = dict()
 
@@ -256,8 +259,10 @@ def dict_merge(base, other):
 
     :returns: new combined dict object
     """
-    assert isinstance(base, dict), "`base` must be of type <dict>"
-    assert isinstance(other, dict), "`other` must be of type <dict>"
+    if not isinstance(base, dict):
+        raise AssertionError("`base` must be of type <dict>")
+    if not isinstance(other, dict):
+        raise AssertionError("`other` must be of type <dict>")
 
     combined = dict()
 
@@ -300,12 +305,13 @@ def dict_merge(base, other):
 
 
 def conditional(expr, val, cast=None):
-    match = re.match('^(.+)\((.+)\)$', str(expr), re.I)
+    match = re.match(r'^(.+)\((.+)\)$', str(expr), re.I)
     if match:
         op, arg = match.groups()
     else:
         op = 'eq'
-        assert (' ' not in str(expr)), 'invalid expression: cannot contain spaces'
+        if ' ' in str(expr):
+            raise AssertionError('invalid expression: cannot contain spaces')
         arg = expr
 
     if cast is None and val is not None:
@@ -335,6 +341,20 @@ def remove_default_spec(spec):
     for item in spec:
         if 'default' in spec[item]:
             del spec[item]['default']
+
+
+def validate_ip_address(address):
+    try:
+        socket.inet_aton(address)
+    except socket.error:
+        return False
+    return address.count('.') == 3
+
+
+def validate_prefix(prefix):
+    if prefix and not 0 <= int(prefix) <= 32:
+        return False
+    return True
 
 
 def load_provider(spec, args):

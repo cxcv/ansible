@@ -26,7 +26,8 @@ except ImportError:
 
 from ansible.compat.tests.mock import patch
 from ansible.modules.network.junos import junos_rpc
-from .junos_module import TestJunosModule, load_fixture, set_module_args
+from units.modules.utils import set_module_args
+from .junos_module import TestJunosModule, load_fixture
 
 
 RPC_CLI_MAP = {
@@ -34,7 +35,8 @@ RPC_CLI_MAP = {
     'get-interface-information': 'show interfaces details',
     'get-system-memory-information': 'show system memory',
     'get-chassis-inventory': 'show chassis hardware',
-    'get-system-storage': 'show system storage'
+    'get-system-storage': 'show system storage',
+    'load-configuration': 'load configuration'
 }
 
 
@@ -43,10 +45,12 @@ class TestJunosCommandModule(TestJunosModule):
     module = junos_rpc
 
     def setUp(self):
+        super(TestJunosCommandModule, self).setUp()
         self.mock_send_request = patch('ansible.modules.network.junos.junos_rpc.send_request')
         self.send_request = self.mock_send_request.start()
 
     def tearDown(self):
+        super(TestJunosCommandModule, self).tearDown()
         self.mock_send_request.stop()
 
     def load_fixtures(self, commands=None, format='text', changed=False):
@@ -88,3 +92,8 @@ class TestJunosCommandModule(TestJunosModule):
         args, kwargs = self.send_request.call_args
         reply = tostring(args[1]).decode()
         self.assertTrue(reply.find('<interface>em0</interface><media /></get-software-information>'))
+
+    def test_junos_rpc_attrs(self):
+        set_module_args(dict(rpc='load-configuration', output='xml', attrs={'url': '/var/tmp/config.conf'}))
+        result = self.execute_module(format='xml')
+        self.assertTrue(result['xml'].find('<load-success/>'))
